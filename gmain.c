@@ -132,6 +132,7 @@ void TryScale(float times)
     SetViewModes(saveDisplayMode, saveScaleMode, saveScaleRatio);
 }
 
+//mod by chris
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
     if (gDebug) printf("\nKey event\n");
@@ -140,16 +141,18 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_d:
           DeleteImage(gCurImage);
           break;
+      case GDK_n:
       case GDK_space:
           /* If we're in slideshow mode, cancel the slideshow */
           if (gDelaySeconds > 0) {
               gDelaySeconds = 0;
           }
           else if (NextImage() != 0) {
-              if (Prompt("Quit pho?", "Quit", "Continue", "qx \n", "cn") != 0)
+              if (Prompt("quit pho?", "quit", "continue", "qx \n", "cn") != 0)
                   EndSession();
           }
           return TRUE;
+      case GDK_p:
       case GDK_BackSpace:
           PrevImage();
           return TRUE;
@@ -161,10 +164,11 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           gCurImage = gFirstImage->prev;
           ThisImage();
           return TRUE;
-      case GDK_n:   /* Get out of any weird display modes */
+      case GDK_equal:   /* Get out of any weird display modes */
           SetViewModes(PHO_DISPLAY_NORMAL, PHO_SCALE_NORMAL, 1.);
           ShowImage();
           return TRUE;
+      #if 0
       case GDK_f:   /* Full size mode: show image bit-for-bit */
           /* Don't respond to ctrl-F -- that might be an attempt
            * to edit in a text field in the keywords dialog
@@ -176,13 +180,14 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
                                      PHO_SCALE_FULLSIZE, PHO_SCALE_NORMAL),
                        1.);
           return TRUE;
+      #endif
       case GDK_F:   /* Full screen mode: as big as possible on screen */
           SetViewModes(gDisplayMode,
                        ToggleBetween(gScaleMode,
-                                     PHO_SCALE_FULLSCREEN, PHO_SCALE_NORMAL),
+                       PHO_SCALE_FULLSCREEN, PHO_SCALE_NORMAL),
                        1.);
           return TRUE;
-      case GDK_p:
+      case GDK_f:
           SetViewModes((gDisplayMode == PHO_DISPLAY_PRESENTATION)
                        ? PHO_DISPLAY_NORMAL
                        : PHO_DISPLAY_PRESENTATION,
@@ -203,16 +208,16 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           else
               ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
           return TRUE;
-      case GDK_t:   /* make life easier for xv switchers */
-      case GDK_r:
+      case GDK_r:   /* make life easier for xv switchers */
+      //case GDK_t:
       case GDK_Right:
       case GDK_KP_Right:
           ScaleAndRotate(gCurImage, 90);
           return TRUE;
-      case GDK_T:   /* make life easier for xv users */
-      case GDK_R:
-      case GDK_l:
-      case GDK_L:
+      case GDK_R:   /* make life easier for xv users */
+      //case GDK_T:
+      //case GDK_l:
+      //case GDK_L:
       case GDK_Left:
       case GDK_KP_Left:
           ScaleAndRotate(gCurImage, 270);
@@ -221,35 +226,37 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_Down:
           ScaleAndRotate(gCurImage, 180);
           return TRUE;
+      case GDK_i:
       case GDK_plus:
       case GDK_KP_Add:
-      case GDK_equal:
           if (event->state & GDK_CONTROL_MASK)
               TryScale(1.25);
           else
               TryScale(2.);
           return TRUE;
+      case GDK_o:
       case GDK_minus:
-      case GDK_slash:
       case GDK_KP_Subtract:
           if (event->state & GDK_CONTROL_MASK)
               TryScale(.8);
           else
               TryScale(.5);
           return TRUE;
-      case GDK_g:  /* start gimp, or some other app */
+      #if 0
+      case GDK_x:  /* start gimp, or some other app */
           RunPhoCommand();
           break;
-      case GDK_i:
+      case GDK_g:
           ToggleInfo();
           return TRUE;
-      case GDK_k:
+      case GDK_K:
           ToggleKeywordsMode();
           return TRUE;
-      case GDK_o:
+      case GDK_O:
           ChangeWorkingFileSet();
           return TRUE;
-      case GDK_Escape:
+      #endif
+      //case GDK_Escape:
       case GDK_q:
           EndSession();
           return TRUE;
