@@ -138,20 +138,20 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
     if (gDebug) printf("\nKey event\n");
     switch (event->keyval)
     {
-      case GDK_d:
+      case GDK_D:
           DeleteImage(gCurImage);
           break;
       case GDK_n:
       case GDK_space:
-          /* If we're in slideshow mode, cancel the slideshow */
-          if (gDelaySeconds > 0) {
-              gDelaySeconds = 0;
-          }
-          else if (NextImage() != 0) {
-              if (Prompt("quit pho?", "quit", "continue", "qx \n", "cn") != 0)
-                  EndSession();
+          NextImage();
+          return TRUE;
+          #if 0
+          if (NextImage() != 0) {
+            if (Prompt("quit pho?", "quit", "continue", "qx \n", "cn") != 0)
+              EndSession();
           }
           return TRUE;
+          #endif
       case GDK_p:
       case GDK_BackSpace:
           PrevImage();
@@ -210,23 +210,27 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_r:   /* make life easier for xv switchers */
       //case GDK_t:
-      case GDK_Right:
-      case GDK_KP_Right:
+      //case GDK_Right:
+      ////case GDK_KP_Right:
           ScaleAndRotate(gCurImage, 90);
           return TRUE;
       case GDK_R:   /* make life easier for xv users */
       //case GDK_T:
       //case GDK_l:
       //case GDK_L:
-      case GDK_Left:
-      case GDK_KP_Left:
+      //case GDK_Left:
+      //case GDK_KP_Left:
           ScaleAndRotate(gCurImage, 270);
           return TRUE;
+      case GDK_i:
+          TryScale(1.25);
+      case GDK_o:
+          TryScale(.8);
+      #if 0
       case GDK_Up:
       case GDK_Down:
           ScaleAndRotate(gCurImage, 180);
           return TRUE;
-      case GDK_i:
       case GDK_plus:
       case GDK_KP_Add:
           if (event->state & GDK_CONTROL_MASK)
@@ -234,7 +238,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           else
               TryScale(2.);
           return TRUE;
-      case GDK_o:
       case GDK_minus:
       case GDK_KP_Subtract:
           if (event->state & GDK_CONTROL_MASK)
@@ -242,7 +245,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           else
               TryScale(.5);
           return TRUE;
-      #if 0
       case GDK_x:  /* start gimp, or some other app */
           RunPhoCommand();
           break;
@@ -256,7 +258,12 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           ChangeWorkingFileSet();
           return TRUE;
       #endif
-      //case GDK_Escape:
+      case GDK_Escape:
+          /* If we're in slideshow mode, cancel the slideshow */
+          if (gDelaySeconds > 0) {
+              gDelaySeconds = 0;
+          }
+          return TRUE;
       case GDK_q:
           EndSession();
           return TRUE;
