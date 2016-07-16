@@ -32,6 +32,11 @@ int sHaveFrameSize = 0;
 gint gPhysMonitorWidth = 0;
 gint gPhysMonitorHeight = 0;
 
+int sDragOffsetX = 0;
+int sDragOffsetY = 0;
+int sDragStartX = 0;
+int sDragStartY = 0;
+
 /* Initialize the "black" color */
 static GdkColor sBlack = { 0x0000, 0x0000, 0x0000 };
 
@@ -193,6 +198,8 @@ double FracOfScreenSize() {
  */
 int SetViewModes(int dispmode, int scalemode, double scalefactor)
 {
+    sDragOffsetX = sDragOffsetY = 0;
+
     if (dispmode == gDisplayMode && scalemode == gScaleMode
         && scalefactor == gScaleRatio)
         return 0;
@@ -288,6 +295,7 @@ void DrawImage()
         printf("DrawImage %s, %dx%d\n", gCurImage->filename,
                gCurImage->curWidth, gCurImage->curHeight);
     }
+
     if (gImage == 0 || gWin == 0 || sDrawingArea == 0) return;
     if (!sExposed) return;
     if (!GTK_WIDGET_MAPPED(gWin)) return;
@@ -314,8 +322,46 @@ void DrawImage()
         if (gPresentationHeight > 0)
             height = gPresentationHeight;
 
-        dstX = (width - gCurImage->curWidth) / 2;
-        dstY = (height - gCurImage->curHeight) / 2;
+        dstX = (width - gCurImage->curWidth) / 2 + sDragOffsetX;
+        dstY = (height - gCurImage->curHeight) / 2 + sDragOffsetY;
+
+        /* But we probably shouldn't allow dragging the image
+         * completely off the screen -- just drag to the point where
+         * a corner is visible.
+         */
+        /* Left edge */
+        if (gCurImage->curWidth > gMonitorWidth
+            && dstX < gMonitorWidth - gCurImage->curWidth)
+            dstX = gMonitorWidth - gCurImage->curWidth;
+        else if (gCurImage->curWidth <= gMonitorWidth && dstX <= 0)
+            dstX = 0;
+
+        /* Top edge */
+        if (gCurImage->curHeight > gMonitorHeight
+            && dstY < gMonitorHeight - gCurImage->curHeight)
+            dstY = gMonitorHeight - gCurImage->curHeight;
+        else if (gCurImage->curHeight <= gMonitorHeight && dstY <= 0)
+            dstY = 0;
+
+        /* Right edge */
+        if (gCurImage->curWidth < gMonitorWidth
+            && dstX > gMonitorWidth - gCurImage->curWidth)
+            dstX = gMonitorWidth - gCurImage->curWidth;
+        else if (gCurImage->curWidth >= gMonitorWidth
+                 && dstX > 0)
+            dstX = 0;
+
+        /* Bottom edge */
+        if (gCurImage->curHeight < gMonitorHeight
+            && dstY > gMonitorHeight - gCurImage->curHeight)
+            dstY = gMonitorHeight - gCurImage->curHeight;
+        else if (gCurImage->curHeight >= gMonitorHeight
+                 && dstY > 0)
+            dstY = 0;
+
+        /* XXX Would be good to reset sDragOffsetX and sDragOffsetY
+         * in these cases so they don't get crazily out of kilter.
+         */
     }
     else {
         /* Update the titlebar */
@@ -367,6 +413,103 @@ void DrawImage()
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
     UpdateInfoDialog(gCurImage);
+}
+
+static gboolean
+HandlePress(GtkWidget *widget, GdkEventButton *event)
+{
+    if (event->button != 2 )
+        return TRUE;
+
+    /*  grab with owner_events == TRUE so the popup's widgets can
+     *  receive events. we filter away events outside this toplevel
+     *  away in button_press()
+     */
+    if (gdk_pointer_grab (gtk_widget_get_window (widget), TRUE,
+                          GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
+                          | GDK_POINTER_MOTION_MASK
+                          | GDK_POINTER_MOTION_HINT_MASK,
+                          NULL, NULL, GDK_CURRENT_TIME) != GDK_GRAB_SUCCESS)
+        printf("Couldn't grab!\n");
+    sDragStartX = event->x;
+    sDragStartY = event->y;
+
+    return TRUE;
+}
+
+static gboolean
+HandleRelease(GtkWidget *widget, GdkEventButton *event)
+{
+    if (event->button != 2 )
+        return TRUE;
+
+    /* Ungrab, stop listening for motion */
+    gdk_display_pointer_ungrab (gtk_widget_get_display(widget),
+                                GDK_CURRENT_TIME);
+    return TRUE;
+}
+
+static gboolean
+HandleMotionNotify(GtkWidget *widget, GdkEventMotion *event)
+{
+#define DRAGRESTART 3
+    int x, y;
+    GdkModifierType state;
+    gdk_window_get_pointer (widget->window, &x, &y, &state);
+
+    if (state & GDK_BUTTON2_MASK) {
+        sDragOffsetX += x - sDragStartX;
+        sDragOffsetY += y - sDragStartY;
+        /* Drag offsets will get sanity checked when we show the image,
+         * to disallow dragging the image entirely off the screen.
+         */
+
+        /* We've handled this drag, so the next motion event
+         * should start from here.
+         */
+        sDragStartX = x;
+        sDragStartY = y;
+
+        /* Assuming we're definitely in presentation mode,
+         * the user probably can't see the pointer, and it's confusing
+         * and frustrating when the mouse hits the edge of the screen
+         * and it's not obvious what to do about it.
+         * So when that happens, warp it to the opposite side of the screen.
+         */
+        if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
+            int warpToX = -1;
+            int warpToY = -1;
+            if (x >= gMonitorWidth-1) {
+                warpToX = DRAGRESTART;
+                warpToY = y;
+            }
+            else if (x <= 1) {
+                warpToX = gMonitorWidth-DRAGRESTART;
+                warpToY = y;
+            }
+            if (y >= gMonitorHeight-1) {
+                warpToX = x;
+                warpToY = DRAGRESTART;
+            }
+            else if (y <= 1) {
+                warpToX = x;
+                warpToY = gMonitorHeight-DRAGRESTART;
+            }
+            /* If we've hit an edge of the screen, warp to the opposite edge */
+            if (warpToX >= 0 && warpToY >= 0) {
+                gdk_display_warp_pointer(gtk_widget_get_display(widget),
+                                         gdk_drawable_get_screen(sDrawingArea->window),
+                                         warpToX, warpToY);
+                sDragStartX = warpToX;
+                sDragStartY = warpToY;
+            }
+        }
+
+        /* This flickers: would be nice to collapse events more */
+        DrawImage();
+    }
+
+    return TRUE;
 }
 
 /* An expose event has a GdkRectangle area and a GdkRegion *region
@@ -493,6 +636,15 @@ static void NewWindow()
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               gPhysMonitorWidth, gPhysMonitorHeight);
         gtk_window_fullscreen(GTK_WINDOW(gWin));
+
+        /* Listen for middle clicks to drag position: */
+        gtk_widget_set_events(sDrawingArea, GDK_BUTTON_PRESS_MASK);
+        gtk_signal_connect(GTK_OBJECT(sDrawingArea), "button_press_event",
+                           (GtkSignalFunc)HandlePress, 0);
+        gtk_signal_connect(GTK_OBJECT(sDrawingArea), "button_release_event",
+                           (GtkSignalFunc)HandleRelease, 0);
+        gtk_signal_connect(GTK_OBJECT(sDrawingArea), "motion_notify_event",
+                           (GtkSignalFunc)HandleMotionNotify, 0);
     }
     else {
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
@@ -542,6 +694,8 @@ void PrepareWindow()
         NewWindow();
         return;
     }
+
+    sDragOffsetX = sDragOffsetY = 0;
 
     /* If the window is new but hasn't been mapped yet,
      * there's nothing we can do from here.
