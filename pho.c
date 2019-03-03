@@ -44,7 +44,7 @@ int gDelayMillis = 0;
 int gPendingTimeout = 0;
 
 /* Loop back to the first image after showing the last one */
-int gRepeat = 0;
+int IfRepeat();  //add by sim1
 
 static int RotateImage(PhoImage* img, int degrees);    /* forward */
 
@@ -56,7 +56,12 @@ static gint DelayTimer(gpointer data)
     if (gDebug) printf("-- Timer fired\n");
     gPendingTimeout = 0;
 
-    NextImage();
+    if (NextImage() != 0) {
+        //add by sim1
+        if (IfRepeat()) {
+            gCurImage->next = gFirstImage;
+        }
+    }
     return FALSE;       /* cancel the timer */
 }
 
@@ -191,9 +196,10 @@ int NextImage()
                 printf("NextImage: going to first image\n");
             gCurImage = gFirstImage;
         }
-        else if (gCurImage->next == gFirstImage) {  /* end of the list */
-            return -1;
-        }
+        //delete by sim1 for repeating slideshow
+        //else if (gCurImage->next == gFirstImage) {  /* end of the list */
+        //    return -1;
+        //}
         else {
             gCurImage = gCurImage->next;
         }

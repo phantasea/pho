@@ -20,6 +20,44 @@
 
 char * gCapFileFormat = "Captions";
 
+#if 0
+GDK_space			0x020
+GDK_exclam			0x021
+GDK_quotedbl		0x022
+GDK_numbersign		0x023
+GDK_dollar			0x024
+GDK_percent			0x025
+GDK_ampersand		0x026
+GDK_apostrophe		0x027
+GDK_quoteright		0x027
+GDK_parenleft		0x028
+GDK_parenright		0x029
+GDK_asterisk		0x02a
+GDK_plus			0x02b
+GDK_comma			0x02c
+GDK_minus			0x02d
+GDK_period			0x02e
+GDK_slash			0x02f
+GDK_colon			0x03a
+GDK_semicolon		0x03b
+GDK_less			0x03c
+GDK_equal			0x03d
+GDK_greater			0x03e
+GDK_question		0x03f
+GDK_at				0x040
+GDK_bracketleft		0x05b
+GDK_backslash		0x05c
+GDK_bracketright	0x05d
+GDK_asciicircum		0x05e
+GDK_underscore		0x05f
+GDK_grave			0x060
+GDK_quoteleft		0x060
+GDK_braceleft		0x07b
+GDK_bar				0x07c
+GDK_braceright		0x07d
+GDK_asciitilde		0x07e
+#endif
+
 /* Toggle a variable between two modes, preferring the first.
  * If it's anything but mode1 it will end up as mode1.
  */
@@ -46,6 +84,14 @@ static int ModeForScaling(int oldmode)
     }
 }
 
+//add by sim1
+int gRepeat = 0;
+int IfRepeat()
+{
+    return gRepeat;
+}
+
+#if 0
 static void RunPhoCommand()
 {
     int i;
@@ -100,6 +146,7 @@ static void RunPhoCommand()
     if (new_argv)
         free(new_argv);
 }
+#endif
 
 void TryScale(float times)
 {
@@ -116,10 +163,13 @@ void TryScale(float times)
     SetViewModes(saveDisplayMode, saveScaleMode, saveScaleRatio);
 }
 
-//mod by chris
+//mod by sim1
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
-    if (gDebug) printf("\nKey event\n");
+    if (gDebug)
+        printf("00000 key: %lu\n", (unsigned long)(event->keyval));
+
+    #if 0
     if (event->state) {
         switch (event->keyval)
         {
@@ -157,9 +207,11 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
                 }
                 return FALSE;
             default:
+                printf("11111 key: %lu\n", (unsigned long)(event->keyval));
                 return FALSE;
         }
     }
+    #endif
 
     /* Now we know no modifier keys were down. */
     switch (event->keyval)
@@ -169,49 +221,42 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           break;
       case GDK_n:
       case GDK_space:
-          NextImage();
-          return TRUE;
-          #if 0
-          /* If we're in slideshow mode, cancel the slideshow */
-          if (gDelayMillis > 0) {
-              gDelayMillis = 0;
-          }
-          else if (NextImage() != 0) {
+          if (NextImage() != 0) {
+              #if 0
               if (Prompt("Quit pho?", "Quit", "Continue", "qx \n", "cn") != 0)
                   EndSession();
+              #endif
           }
           return TRUE;
-          #endif
       case GDK_p:
       case GDK_BackSpace:
       case GDK_Page_Up:
       case GDK_KP_Page_Up:
           PrevImage();
           return TRUE;
+      case GDK_P:
+      case GDK_S:
+          //slideshow
+          gDelayMillis = 1000;
+          gRepeat=1;
+          ShowImage();
+          return TRUE;
       case GDK_Home:
+      case GDK_0:
+      case GDK_asciicircum:
           gCurImage = 0;
           NextImage();
           return TRUE;
       case GDK_End:
+      case GDK_G:
+      case GDK_dollar:
           gCurImage = gFirstImage->prev;
           ThisImage();
           return TRUE;
-      case GDK_equal:   /* Get out of any weird display modes */
-          SetViewModes(PHO_DISPLAY_NORMAL, PHO_SCALE_NORMAL, 1.);
-          ShowImage();
-          return TRUE;
-      #if 0
-      case GDK_f:   /* Full size mode: show image bit-for-bit */
+      case GDK_x:
+      case GDK_F:
           SetViewModes(gDisplayMode,
-                       ToggleBetween(gScaleMode,
-                                     PHO_SCALE_FULLSIZE, PHO_SCALE_NORMAL),
-                       1.);
-          return TRUE;
-      #endif
-      case GDK_F:   /* Full screen mode: as big as possible on screen */
-          SetViewModes(gDisplayMode,
-                       ToggleBetween(gScaleMode,
-                       PHO_SCALE_FULLSCREEN, PHO_SCALE_NORMAL),
+                       ToggleBetween(gScaleMode, PHO_SCALE_FULLSCREEN, PHO_SCALE_NORMAL),
                        1.);
           return TRUE;
       case GDK_f:
@@ -219,6 +264,54 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
                        ? PHO_DISPLAY_NORMAL
                        : PHO_DISPLAY_PRESENTATION,
                        gScaleMode, gScaleRatio);
+          return TRUE;
+      case GDK_r:
+      case GDK_Right:
+      case GDK_KP_Right:
+          ScaleAndRotate(gCurImage, 90);
+          return TRUE;
+      case GDK_R:
+      case GDK_Left:
+      case GDK_KP_Left:
+          ScaleAndRotate(gCurImage, 270);
+          return TRUE;
+      case GDK_i:
+      case GDK_plus:
+      case GDK_KP_Add:
+          if (event->state & GDK_CONTROL_MASK) {
+              TryScale(1.5);
+          } else {
+              TryScale(1.25);
+          }
+          return TRUE;
+      case GDK_o:
+      case GDK_minus:
+      case GDK_KP_Subtract:
+          if (event->state & GDK_CONTROL_MASK) {
+              TryScale(.6);
+          } else {
+              TryScale(.8);
+          }
+          return TRUE;
+      case GDK_equal:
+          SetViewModes(gDisplayMode, PHO_SCALE_NORMAL, 1.);
+          return TRUE;
+      case GDK_Up:
+      case GDK_Down:
+          ScaleAndRotate(gCurImage, 180);
+          return TRUE;
+      #if 0
+      case GDK_X:  /* start gimp, or some other app */
+          RunPhoCommand();
+          return TRUE;
+      case GDK_I:
+          ToggleInfo();
+          return TRUE;
+      case GDK_K:
+          ToggleKeywordsMode();
+          return TRUE;
+      case GDK_O:
+          ChangeWorkingFileSet();
           return TRUE;
       case GDK_0:
       case GDK_1:
@@ -232,65 +325,24 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_9:
           ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
           return TRUE;
-      case GDK_r:   /* make life easier for xv switchers */
-      //case GDK_t:
-      //case GDK_Right:
-      ////case GDK_KP_Right:
-          ScaleAndRotate(gCurImage, 90);
-          return TRUE;
-      case GDK_R:   /* make life easier for xv users */
-      //case GDK_T:
-      //case GDK_l:
-      //case GDK_L:
-      //case GDK_Left:
-      //case GDK_KP_Left:
-          ScaleAndRotate(gCurImage, 270);
-          return TRUE;
-      case GDK_i:
-          TryScale(1.25);
-      case GDK_o:
-          TryScale(.8);
-      #if 0
-      case GDK_Up:
-      case GDK_Down:
-          ScaleAndRotate(gCurImage, 180);
-          return TRUE;
-      case GDK_plus:
-      case GDK_KP_Add:
-          if (event->state & GDK_CONTROL_MASK)
-              TryScale(1.25);
-          else
-              TryScale(2.);
-          return TRUE;
-      case GDK_minus:
-      case GDK_KP_Subtract:
-          TryScale(.5);
-          return TRUE;
-      case GDK_x:  /* start gimp, or some other app */
-          RunPhoCommand();
-          return TRUE;
-      case GDK_g:
-          ToggleInfo();
-          return TRUE;
-      case GDK_K:
-          ToggleKeywordsMode();
-          return TRUE;
-      case GDK_O:
-          ChangeWorkingFileSet();
-          return TRUE;
       #endif
       case GDK_Escape:
           /* If we're in slideshow mode, cancel the slideshow */
-          if (gDelaySeconds > 0) {
-              gDelaySeconds = 0;
+          if (gDelayMillis > 0) {
+              gDelayMillis = 0;
           }
           return TRUE;
       case GDK_q:
           EndSession();
           return TRUE;
+      case GDK_c:
+          if (event->state & GDK_CONTROL_MASK) {
+              EndSession();
+              return TRUE;
+          }
       default:
           if (gDebug)
-              printf("Don't know key 0x%lu\n", (unsigned long)(event->keyval));
+              printf("222222 Unknown key: %lu\n", (unsigned long)(event->keyval));
           return FALSE;
     }
     /* Keep gcc 2.95 happy: */
