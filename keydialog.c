@@ -201,7 +201,7 @@ static void AddNewKeywordField()
     }
 
     /* If we got here, we've overflowed */
-    sprintf(buf, "That's all: sorry, only %ld keywords at once", NUM_NOTES);
+    sprintf(buf, "That's all: sorry, only %d keywords at once", NUM_NOTES);
     label = gtk_label_new(buf);
     gtk_box_pack_start(GTK_BOX(KeywordsContainer), label, TRUE, TRUE, 4);
     gtk_widget_show(label);
