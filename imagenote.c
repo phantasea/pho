@@ -350,16 +350,19 @@ void PrintNotes()
     /* Now we've looped over all the structs, so we can print out
      * the tables of rotation and notes.
      */
-    if (rot90)
-        printf("\nRotate 90 (CW): %s\n", rot90);
-    if (rot270)
-        printf("\nRotate -90 (CCW): %s\n", rot270);
-    if (rot180)
-        printf("\nRotate 180: %s\n", rot180);
-    if (rot0)
-        printf("\nRotate 0 (wrong EXIF): %s\n", rot0);
-    if (unmatchExif)
-        printf("\nWrong EXIF: %s\n", unmatchExif);
+    if (gDebug)
+    {
+        if (rot90)
+            printf("\nRotate 90 (CW): %s\n", rot90);
+        if (rot270)
+            printf("\nRotate -90 (CCW): %s\n", rot270);
+        if (rot180)
+            printf("\nRotate 180: %s\n", rot180);
+        if (rot0)
+            printf("\nRotate 0 (wrong EXIF): %s\n", rot0);
+        if (unmatchExif)
+            printf("\nWrong EXIF: %s\n", unmatchExif);
+    }
     for (i=0; i < NUM_NOTES; ++i)
         if (sFlagFileList[i])
         {
