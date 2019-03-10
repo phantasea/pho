@@ -294,6 +294,7 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           }
           return TRUE;
       case GDK_equal:
+      case GDK_period:
           SetViewModes(gDisplayMode, PHO_SCALE_NORMAL, 1.);
           return TRUE;
       case GDK_Up:
