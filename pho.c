@@ -423,7 +423,7 @@ int ScaleAndRotate(PhoImage* img, int degrees)
             new_height = img->curHeight;
         }
     }
-        
+
     /* Fullscreen: Scale either up or down if necessary to make
      * the largest dimension match the screen size.
      */
@@ -599,7 +599,7 @@ void ReallyDelete(PhoImage* delImg)
 
     DeleteItem(delImg);
 
-    /* If we just deleted the last image, all we can do is quit */
+    /* If we just deleted the only image, all we can do is quit */
     if (!gFirstImage)
         EndSession();
 
